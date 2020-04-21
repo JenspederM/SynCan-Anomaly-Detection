@@ -136,64 +136,6 @@ prepare_syncan_test <- function(data, train_complete, outpath = "./Data/", out_t
   return(out_list)
 }
 
-prepare_syncan_data <- function(data, data_type = c("train", "test"), 
-                                outpath = "./Data/", out_tag = "complete") {
-  writeLines("Cast data to long")
-  dt_long <- melt(
-    data = data, 
-    id.vars = c("file", "label", "time", "id"), 
-    measure.vars = sprintf("signal%d", 1:4),
-    na.rm = TRUE
-  )
-  
-  data_type <- match.arg(data_type)
-  
-  if (data_type == "train") {
-    writeLines("Cast data to wide")
-    dt_wide <- dcast(
-      data = dt_long[order(time)],
-      formula = time + label ~ id + variable,
-      value.var = "value"
-    )
-    
-    writeLines("Fill NA's by LOCF")
-    signal_cols <- names(dt_wide)[grepl("signal", names(dt_wide))]
-    dt_wide[, (signal_cols) := lapply(.SD, na_locf), .SDcols = signal_cols]
-    dt_wide <- dt_wide[complete.cases(dt_wide)]
-    
-    out_cols <- c("label", "time", names(dt_wide)[grepl("signal", names(dt_wide))])
-    
-    writeLines("Write Train Data")
-    fwrite(
-      x = dt_wide[, .SD, .SDcols = out_cols], 
-      file = sprintf("%s/train_%s.csv", outpath, out_tag))
-  } else {
-    
-    writeLines("Add Row ID")
-    dt_long[, rowid := .SD[, .I], .(file)]
-    
-    writeLines("Cast data to wide")
-    dt_wide <- dcast(
-      data = dt_long,
-      formula = file + rowid + time + label ~ id + variable,
-      value.var = "value"
-    )
-    
-    out_cols <- c("label", "time", names(dt_wide)[grepl("signal", names(dt_wide))])
-    files <- unique(dt_wide$file)
-    
-    writeLines("Write Test Data")
-    for (f in files) {
-      fwrite(
-        x = dt_wide[file == f, .SD, .SDcols = out_cols], 
-        file = sprintf("%s/%s_%s.csv", outpath, f, out_tag)
-      )
-    }
-  }
-  
-  return(dt_wide)
-}
-
 # Make Pretty File Names --------------------------------------------------
 
 prettify_file_name <- function(x, remove_ext = TRUE) {
