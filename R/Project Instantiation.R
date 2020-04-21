@@ -36,8 +36,10 @@ load_packages(required_packages)
 
 source("./R/data_helpers.R")
 source("./R/classification_helpers.R")
+sourceCpp("./src/na_locf.cpp")
 
 # Set Options -------------------------------------------------------------
 
+options(datatable.print.class = TRUE)
 options(scipen = 999)
 options("h2o.use.data.table"=TRUE)

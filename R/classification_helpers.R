@@ -89,7 +89,7 @@ confusion_metrics <- function(TP, TN, FP, FN) {
   )
 }
 
-classification_report <- function(test_frame, prediction_frame, target = "label", quantile = 0.95) {
+classification_report <- function(test_frame, prediction_frame, title = "", target = "label", quantile = 0.95, verbose = TRUE) {
   conf_matrix <- confusion_matrix(
     test_frame = test_frame, 
     prediction_frame = prediction_frame, 
@@ -108,19 +108,19 @@ classification_report <- function(test_frame, prediction_frame, target = "label"
   
   p <- conf_plot / gridExtra::tableGrob(conf_metrics, rows = NULL) +
     plot_layout(heights = c(4, 0.5)) +
-    plot_annotation(title = sprintf("Confusion Matrix"),
+    plot_annotation(title = sprintf("Confusion Matrix: %s", title),
                     subtitle = sprintf("Predictions are constituted by reconstruction error above the %s quantile", 
                                        scales::percent(quantile)))
   
   
-  print(p)
+  if (isTRUE(verbose)) print(p)
   
   return(
     invisible(
       list(
         `Confusion Matrix` = conf_matrix,
         `Confusion Metrics` = conf_metrics,
-        `Confusion Plot` = conf_plot
+        `Confusion Plot` = p
       )
     )
   )
