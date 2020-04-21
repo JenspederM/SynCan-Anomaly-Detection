@@ -126,3 +126,51 @@ classification_report <- function(test_frame, prediction_frame, title = "", targ
   )
   
 }
+
+
+# Evaluate Anomaly Detection Model ----------------------------------------
+
+evaluate_model <- function(model, test_path) {
+  test_hex <- h2o.importFile(test_path)
+  
+  # Anomaly Detection  
+  writeLines("Testing for anomalies...")
+  data_reconstruction <- h2o.anomaly(
+    object = base_model,
+    data = test_hex
+  )
+  
+  # Plot Reconstruction Error
+  writeLines("Plotting reconstruction error...")
+  reconstruction_plot <- plot_reconstruction_error(
+    model = as.data.frame(data_reconstruction)
+  )
+  
+  # Plot Prediction
+  writeLines("Plotting prediction...")
+  prediction <- plot_prediction(
+    test_frame = as.data.frame(test_hex),
+    prediction_frame = as.data.frame(data_reconstruction), 
+    target = "label", 
+    quantile = 0.90
+  )
+  
+  # Generate Evaluation Report
+  writeLines("Generating evaluation report...")
+  report <- classification_report(
+    test_frame = as.data.frame(test_hex), 
+    prediction_frame = as.data.frame(data_reconstruction),
+    target = "label", 
+    quantile = 0.90,
+    title = prettify_file_name(test_path),
+    verbose = FALSE
+  )
+  
+  list(
+    "Reconstruction" = data_reconstruction,
+    "Test" = as.data.frame(test_hex),
+    "Reconstruction_Plot" = reconstruction_plot,
+    "Prediction_Plot" = prediction,
+    "Evaluation_Report" = report
+  )
+}
