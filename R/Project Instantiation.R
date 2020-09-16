@@ -26,7 +26,7 @@ required_packages <- c(
   "Rcpp", 
   
   #### Modeling
-  "h2o"
+  "keras"
 )
 
 load_packages(required_packages)
@@ -36,6 +36,7 @@ load_packages(required_packages)
 
 source("./R/data_helpers.R")
 source("./R/classification_helpers.R")
+source("./R/Utilities.R")
 sourceCpp("./src/na_locf.cpp")
 
 # Set Options -------------------------------------------------------------

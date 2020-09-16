@@ -30,10 +30,9 @@ base_model <- h2o.deeplearning(
   seed = 1337L,
   hidden = c(50, 100, 50),
   epochs = 100, 
-  verbose = TRUE
+  verbose = FALSE
 )
 
-h2o.varimp_plot(base_model)
 # Save Base Model ---------------------------------------------------------
 
 h2o.saveModel(

@@ -4,3 +4,65 @@ output: document_md
 ---
 
 
+```{r}
+source("./R/Project Instantiation.R")
+```
+
+```{r}
+train <- fread("./Data/train_combined.csv")
+test <- fread("./Data/test_continuous.csv")
+train[, id := factor(id, levels = sprintf("id%d", 1:10))]
+test[, id := factor(id, levels = sprintf("id%d", 1:10))]
+train <- fread("./Data/train_complete.csv")
+signal_cols <- names(train)[grepl("signal", names(train))]
+for (col in signal_cols) {
+  train[, sprintf("%s_rle", col) := seq_len(.N), .(rleid(get(col)))]
+}
+
+```
+
+
+# Density plot af interarrival times (in milliseconds)
+```{r}
+plot(
+  x = density(
+    x = train[, diff(time), .(id)]$V1,
+    na.rm = T
+  ), 
+  main = "Kernel Density of Signal Interarrival Times"
+)
+```
+
+- We can see that the distribution of signal interarrival times is multimodal with peaks at [15, 30, 45] milliseconds.
+- We see that the most frequent interarrival time is 15 milliseconds, next is 30 milliseconds, and then 45.
+
+
+```{r}
+
+train_wide <- dcast(train, label+time~id, value.var = c("signal1", "signal2", "signal3", "signal4"))
+train_wide <- train_wide[, .SD, .SDcols = colSums(is.na(train_wide)) != nrow(train_wide)]
+test_wide <- dcast(test, label+time~id, value.var = c("signal1", "signal2", "signal3", "signal4"))
+test_wide <- test_wide[, .SD, .SDcols = colSums(is.na(test_wide)) != nrow(test_wide)]
+
+train_sub <- train_wide[1:1e6]
+
+train_sub
+
+
+
+signal_cols <- get_colnames(train_wide, "signal")
+train_sub[, (signal_cols) := lapply(.SD, minmax_norm), .SDcols = signal_cols]
+train_sub[, unlist(lapply(signal_cols, paste0, "_", c("min", "max", "sd", "mean"))) := sapply(.SD, get_desc), .SDcols = signal_cols]
+
+
+
+df_train <- train_sub[]
+```
+
+```{r}
+model <- keras_model_sequential()
+
+
+
+```
+

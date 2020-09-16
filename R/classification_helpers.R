@@ -130,47 +130,78 @@ classification_report <- function(test_frame, prediction_frame, title = "", targ
 
 # Evaluate Anomaly Detection Model ----------------------------------------
 
-evaluate_model <- function(model, test_path) {
-  test_hex <- h2o.importFile(test_path)
+evaluate_model <- function(model, test_path = NULL, test_data = NULL, quantile = 0.90, 
+                           plot_reconstruction = FALSE, plot_prediction = FALSE, generate_report = FALSE) {
+  
+  # Global Timer
+  tictoc::tic("Evaluated Model in")
+  
+  # Load test data
+  tictoc::tic("Loading test data...")
+  if (!is.null(test_path)) {
+    test_hex <- h2o.importFile(test_path)
+    report_title <- prettify_file_name(test_path)
+  } else if (!is.null(test_data)) {
+    test_hex <- as.h2o(test_data)
+    report_title <- deparse(substitute(test_data))
+  } else {
+    stop("Test must be provided either at a path or as data")
+  }
+  tictoc::toc()
+  
+  # Construct output
+  output <- list(
+    "Reconstruction" = NULL,
+    "Test" = as.data.frame(test_hex),
+    "Reconstruction_Plot" = NULL,
+    "Prediction_Plot" = NULL,
+    "Evaluation_Report" = NULL
+  )
   
   # Anomaly Detection  
-  writeLines("Testing for anomalies...")
-  data_reconstruction <- h2o.anomaly(
-    object = base_model,
+  tictoc::tic("Testing for anomalies...")
+  output[["Reconstruction"]] <- h2o.anomaly(
+    object = model,
     data = test_hex
   )
+  tictoc::toc()
   
   # Plot Reconstruction Error
-  writeLines("Plotting reconstruction error...")
-  reconstruction_plot <- plot_reconstruction_error(
-    model = as.data.frame(data_reconstruction)
-  )
+  if (isTRUE(plot_reconstruction)) {
+    tictoc::tic("Plotting reconstruction error...")
+    output[["Reconstruction_Plot"]] <- plot_reconstruction_error(
+      model = as.data.frame(output[["Reconstruction"]])
+    )
+    tictoc::toc()
+  } 
   
   # Plot Prediction
-  writeLines("Plotting prediction...")
-  prediction <- plot_prediction(
-    test_frame = as.data.frame(test_hex),
-    prediction_frame = as.data.frame(data_reconstruction), 
-    target = "label", 
-    quantile = 0.90
-  )
+  if (isTRUE(plot_prediction)) {
+    tictoc::tic("Plotting prediction...")
+    output[["Prediction_Plot"]] <- plot_prediction(
+      test_frame = output[["Test"]],
+      prediction_frame = as.data.frame(output[["Reconstruction"]]), 
+      target = "label", 
+      quantile = quantile
+    )
+    tictoc::toc()
+  } 
   
   # Generate Evaluation Report
-  writeLines("Generating evaluation report...")
-  report <- classification_report(
-    test_frame = as.data.frame(test_hex), 
-    prediction_frame = as.data.frame(data_reconstruction),
-    target = "label", 
-    quantile = 0.90,
-    title = prettify_file_name(test_path),
-    verbose = FALSE
-  )
+  if (isTRUE(generate_report)) {
+    tictoc::tic("Generating evaluation report...")
+    output[["Evaluation_Report"]] <- classification_report(
+      test_frame = output[["Test"]], 
+      prediction_frame = as.data.frame(output[["Reconstruction"]]),
+      target = "label", 
+      quantile = quantile,
+      title = report_title,
+      verbose = FALSE
+    )
+    tictoc::toc()
+  } 
   
-  list(
-    "Reconstruction" = data_reconstruction,
-    "Test" = as.data.frame(test_hex),
-    "Reconstruction_Plot" = reconstruction_plot,
-    "Prediction_Plot" = prediction,
-    "Evaluation_Report" = report
-  )
+  tictoc::toc()
+  
+  return(output)
 }
